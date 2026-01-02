@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'admin_products_screen.dart';
 import 'manage_kasir_screen.dart';
 import 'login_screen.dart';
+import 'reports_screen.dart';
 
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
@@ -507,17 +508,3 @@ class _Blob extends StatelessWidget {
   }
 }
 
-class ReportsScreen extends StatelessWidget {
-  const ReportsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Laporan')),
-      body: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('Nanti: grafik omzet, transaksi per hari, produk terlaris.'),
-      ),
-    );
-  }
-}
