@@ -12,10 +12,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final userCtrl = TextEditingController();
-  final pinCtrl = TextEditingController();
+  final emailCtrl = TextEditingController();
+  final passCtrl = TextEditingController();
 
-  bool _obscurePin = true;
+  bool _obscurePass = true;
   bool _loading = false;
   String? _error;
 
@@ -42,10 +42,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   void dispose() {
-    userCtrl.dispose();
-    pinCtrl.dispose();
+    emailCtrl.dispose();
+    passCtrl.dispose();
     _animCtrl.dispose();
     super.dispose();
+  }
+
+  bool _isValidEmail(String s) {
+    // Simple & cukup aman untuk UI validation
+    return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(s);
   }
 
   Future<void> doLogin() async {
@@ -57,27 +62,38 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _error = null;
     });
 
-    await Future.delayed(const Duration(milliseconds: 250));
+    try {
+      final u = await AuthStore.login(
+        email: emailCtrl.text.trim().toLowerCase(),
+        password: passCtrl.text,
+        deviceName: 'flutter',
+      );
 
-    final u = AuthStore.login(userCtrl.text.trim(), pinCtrl.text.trim());
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (u == null) {
+      if (u == null) {
+        setState(() {
+          _loading = false;
+          _error = 'Login gagal (email/password salah atau akun nonaktif)';
+        });
+        return;
+      }
+
+      final next = u.role == 'admin' ? const AdminHome() : const KasirHome();
+
+      setState(() => _loading = false);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => next),
+      );
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Login gagal (user/pin salah atau akun nonaktif)';
+        _error = 'Gagal konek ke server';
       });
-      return;
     }
-
-    final next = u.role == 'admin' ? const AdminHome() : const KasirHome();
-
-    setState(() => _loading = false);
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => next),
-    );
   }
 
   @override
@@ -145,55 +161,62 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      'Masukkan username dan PIN kamu',
+                                      'Masukkan email dan password kamu',
                                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                             color: Colors.black54,
                                           ),
                                     ),
                                     const SizedBox(height: 16),
+
+                                    // EMAIL
                                     TextFormField(
-                                      controller: userCtrl,
+                                      controller: emailCtrl,
                                       textInputAction: TextInputAction.next,
+                                      keyboardType: TextInputType.emailAddress,
+                                      autofillHints: const [AutofillHints.email],
                                       decoration: const InputDecoration(
-                                        labelText: 'Username',
-                                        hintText: 'contoh: budi',
-                                        prefixIcon: Icon(Icons.person_rounded),
+                                        labelText: 'Email',
+                                        hintText: 'contoh: budi@email.com',
+                                        prefixIcon: Icon(Icons.email_rounded),
                                         border: OutlineInputBorder(),
                                       ),
                                       validator: (v) {
-                                        if (v == null || v.trim().isEmpty) return 'Username wajib diisi';
-                                        if (v.trim().length < 3) return 'Minimal 3 karakter';
+                                        final s = (v ?? '').trim();
+                                        if (s.isEmpty) return 'Email wajib diisi';
+                                        if (!_isValidEmail(s)) return 'Format email tidak valid';
                                         return null;
                                       },
                                     ),
                                     const SizedBox(height: 12),
+
+                                    // PASSWORD
                                     TextFormField(
-                                      controller: pinCtrl,
+                                      controller: passCtrl,
                                       textInputAction: TextInputAction.done,
-                                      keyboardType: TextInputType.number,
-                                      obscureText: _obscurePin,
+                                      obscureText: _obscurePass,
                                       onFieldSubmitted: (_) => doLogin(),
+                                      autofillHints: const [AutofillHints.password],
                                       decoration: InputDecoration(
-                                        labelText: 'PIN',
-                                        hintText: '••••',
-                                        prefixIcon: const Icon(Icons.pin_rounded),
+                                        labelText: 'Password',
+                                        hintText: '••••••••',
+                                        prefixIcon: const Icon(Icons.lock_rounded),
                                         border: const OutlineInputBorder(),
                                         suffixIcon: IconButton(
-                                          tooltip: _obscurePin ? 'Tampilkan' : 'Sembunyikan',
-                                          onPressed: () => setState(() => _obscurePin = !_obscurePin),
+                                          tooltip: _obscurePass ? 'Tampilkan' : 'Sembunyikan',
+                                          onPressed: () => setState(() => _obscurePass = !_obscurePass),
                                           icon: Icon(
-                                            _obscurePin ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                                            _obscurePass ? Icons.visibility_rounded : Icons.visibility_off_rounded,
                                           ),
                                         ),
                                       ),
                                       validator: (v) {
-                                        final s = (v ?? '').trim();
-                                        if (s.isEmpty) return 'PIN wajib diisi';
-                                        if (s.length < 4) return 'PIN minimal 4 digit';
-                                        if (!RegExp(r'^\d+$').hasMatch(s)) return 'PIN harus angka';
+                                        final s = (v ?? '');
+                                        if (s.trim().isEmpty) return 'Password wajib diisi';
+                                        if (s.length < 6) return 'Password minimal 6 karakter';
                                         return null;
                                       },
                                     ),
+
                                     if (_error != null) ...[
                                       const SizedBox(height: 12),
                                       _ErrorBanner(text: _error!),
@@ -220,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Tip: Pastikan akun aktif dan PIN benar.',
+                                      'Tip: Pastikan email/password benar dan akun aktif.',
                                       textAlign: TextAlign.center,
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                             color: Colors.black54,

@@ -4,11 +4,17 @@ import 'manage_kasir_screen.dart';
 import 'login_screen.dart';
 import 'reports_screen.dart';
 import 'stock_store_widget.dart';
+import 'auth_store.dart';
 
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
 
-  void _logout(BuildContext context) {
+  Future<void> _logout(BuildContext context) async {
+    try {
+      await AuthStore.logout();
+    } catch (_) {}
+
+    if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -32,12 +38,15 @@ class AdminHome extends StatelessWidget {
               IconButton(
                 tooltip: 'Logout',
                 icon: const Icon(Icons.logout_rounded),
-                onPressed: () => _logout(context),
+                onPressed: () => _logout(context), // <-- tetap sama
               ),
               const SizedBox(width: 6),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsetsDirectional.only(start: 16, bottom: 14),
+              titlePadding: const EdgeInsetsDirectional.only(
+                start: 16,
+                bottom: 14,
+              ),
               title: const Text('Dashboard Pemilik'),
               background: const _HeaderBackground(
                 title: 'Halo, Pemilik 👋',
@@ -48,17 +57,15 @@ class AdminHome extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
             sliver: SliverList(
-              delegate: SliverChildListDelegate(
-                const [
-                  _SummaryRow(),
-                  SizedBox(height: 16),
-                  _SectionTitle(
-                    title: 'Menu Utama',
-                    subtitle: 'Kelola operasional toko kamu',
-                  ),
-                  SizedBox(height: 12),
-                ],
-              ),
+              delegate: SliverChildListDelegate(const [
+                _SummaryRow(),
+                SizedBox(height: 16),
+                _SectionTitle(
+                  title: 'Menu Utama',
+                  subtitle: 'Kelola operasional toko kamu',
+                ),
+                SizedBox(height: 12),
+              ]),
             ),
           ),
           SliverPadding(
@@ -89,7 +96,9 @@ class AdminHome extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const AdminProductsScreen(),
+                      ),
                     );
                   },
                 ),
@@ -101,7 +110,9 @@ class AdminHome extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ManageKasirScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const ManageKasirScreen(),
+                      ),
                     );
                   },
                 ),
@@ -135,7 +146,9 @@ class AdminHome extends StatelessWidget {
                   tone: _Tone.gray,
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Pengaturan: nanti kita bikin')),
+                      const SnackBar(
+                        content: Text('Pengaturan: nanti kita bikin'),
+                      ),
                     );
                   },
                 ),
@@ -152,10 +165,7 @@ class _HeaderBackground extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _HeaderBackground({
-    required this.title,
-    required this.subtitle,
-  });
+  const _HeaderBackground({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -166,10 +176,7 @@ class _HeaderBackground extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            cs.primary,
-            cs.primaryContainer,
-          ],
+          colors: [cs.primary, cs.primaryContainer],
         ),
       ),
       child: Stack(
@@ -199,7 +206,10 @@ class _HeaderBackground extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.white.withOpacity(0.22)),
                   ),
-                  child: const Icon(Icons.dashboard_rounded, color: Colors.white),
+                  child: const Icon(
+                    Icons.dashboard_rounded,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -209,16 +219,16 @@ class _HeaderBackground extends StatelessWidget {
                       Text(
                         title,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                            ),
+                          color: Colors.white.withOpacity(0.9),
+                        ),
                       ),
                     ],
                   ),
@@ -263,10 +273,18 @@ class _SummaryRow extends StatelessWidget {
 
     if (isWide) {
       return Row(
-        children: items
-            .map((e) => Expanded(child: Padding(padding: const EdgeInsets.only(right: 12), child: e)))
-            .toList()
-          ..removeLast(),
+        children:
+            items
+                .map(
+                  (e) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: e,
+                    ),
+                  ),
+                )
+                .toList()
+              ..removeLast(),
       );
     }
 
@@ -305,10 +323,7 @@ class _SummaryItem extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            base.withOpacity(0.18),
-            base.withOpacity(0.08),
-          ],
+          colors: [base.withOpacity(0.18), base.withOpacity(0.08)],
         ),
         border: Border.all(color: base.withOpacity(0.25)),
       ),
@@ -333,21 +348,24 @@ class _SummaryItem extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).hintColor,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: Theme.of(context).hintColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     value,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: cs.onSurface.withOpacity(0.35)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: cs.onSurface.withOpacity(0.35),
+            ),
           ],
         ),
       ),
@@ -412,23 +430,26 @@ class _DashboardTile extends StatelessWidget {
                     child: Icon(icon, color: base),
                   ),
                   const Spacer(),
-                  Icon(Icons.arrow_forward_rounded, color: cs.onSurface.withOpacity(0.35)),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: cs.onSurface.withOpacity(0.35),
+                  ),
                 ],
               ),
               const Spacer(),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 6),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).hintColor,
-                      height: 1.25,
-                    ),
+                  color: Theme.of(context).hintColor,
+                  height: 1.25,
+                ),
               ),
             ],
           ),
@@ -454,16 +475,16 @@ class _SectionTitle extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 3),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).hintColor,
-                    ),
+                  color: Theme.of(context).hintColor,
+                ),
               ),
             ],
           ),
