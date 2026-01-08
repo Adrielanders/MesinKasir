@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder
     {
 
         User::updateOrCreate(
-            ['email' => 'admin@kasir.com'],
+            ['email' => '3'],
             [
                 'name' => 'Admin',
                 'username' => 'admin',
