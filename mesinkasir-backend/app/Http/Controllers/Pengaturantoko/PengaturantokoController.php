@@ -1,11 +1,11 @@
 <?php
 
 
-namespace App\Http\Controllers\Kasir;
+namespace App\Http\Controllers\Pengaturantoko;
 
 use App\Http\Controllers\Controller;
 
-class KasirController extends Controller
+class PengaturantokoController extends Controller
 {
     
 }
