@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Stock;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Database\QueryException;
 
 class StockController extends Controller
 {
@@ -20,7 +21,9 @@ class StockController extends Controller
 
     public function index(Request $request)
     {
-        $stocks = Stock::query()->orderBy('name')->get();
+        $stocks = Stock::query()
+            ->orderBy('name')
+            ->get();
 
         return response()->json([
             'message' => 'OK',
@@ -34,11 +37,17 @@ class StockController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:80', 'unique:stocks,name'],
+            'unit' => ['required', 'in:pcs,gram,kg'],
+            'qty' => ['nullable', 'integer', 'min:0'],
+            'buy_price' => ['nullable', 'integer', 'min:0'],
             'active' => ['nullable', 'boolean'],
         ]);
 
         $stock = Stock::create([
             'name' => $validated['name'],
+            'unit' => $validated['unit'],
+            'qty' => (int) ($validated['qty'] ?? 0),
+            'buy_price' => (int) ($validated['buy_price'] ?? 0),
             'active' => (bool) ($validated['active'] ?? true),
         ]);
 
@@ -54,10 +63,22 @@ class StockController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:80', 'unique:stocks,name,' . $stock->id],
+            'unit' => ['sometimes', 'required', 'in:pcs,gram,kg'],
+            'qty' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'buy_price' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'active' => ['sometimes', 'nullable', 'boolean'],
         ]);
 
         $stock->fill($validated);
+
+        if (array_key_exists('qty', $validated) && $validated['qty'] === null) {
+            $stock->qty = 0;
+        }
+
+        if (array_key_exists('buy_price', $validated) && $validated['buy_price'] === null) {
+            $stock->buy_price = 0;
+        }
+
         $stock->save();
 
         return response()->json([
@@ -70,7 +91,13 @@ class StockController extends Controller
     {
         $this->ensureAdmin($request);
 
-        $stock->delete();
+        try {
+            $stock->delete();
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Stock tidak bisa dihapus karena masih dipakai product',
+            ], Response::HTTP_CONFLICT);
+        }
 
         return response()->json([
             'message' => 'Stock deleted',
@@ -80,12 +107,15 @@ class StockController extends Controller
     public function productStocks(Request $request, Product $product)
     {
         $data = $product->stocks()
-            ->orderBy('name')
+            ->orderBy('stocks.name')
             ->get()
             ->map(function ($s) {
                 return [
                     'id' => $s->id,
                     'name' => $s->name,
+                    'unit' => $s->unit,
+                    'qty' => $s->qty,
+                    'buy_price' => $s->buy_price,
                     'active' => $s->active,
                     'pivot' => [
                         'id' => $s->pivot->id,
@@ -127,6 +157,16 @@ class StockController extends Controller
     {
         $this->ensureAdmin($request);
 
+        $exists = $product->stocks()
+            ->where('stocks.id', $stock->id)
+            ->exists();
+
+        if (!$exists) {
+            return response()->json([
+                'message' => 'Stock belum terpasang di product ini',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
         $validated = $request->validate([
             'qty' => ['sometimes', 'required', 'integer', 'min:0'],
             'active' => ['sometimes', 'nullable', 'boolean'],
@@ -142,6 +182,16 @@ class StockController extends Controller
     public function detachFromProduct(Request $request, Product $product, Stock $stock)
     {
         $this->ensureAdmin($request);
+
+        $exists = $product->stocks()
+            ->where('stocks.id', $stock->id)
+            ->exists();
+
+        if (!$exists) {
+            return response()->json([
+                'message' => 'Stock belum terpasang di product ini',
+            ], Response::HTTP_NOT_FOUND);
+        }
 
         $product->stocks()->detach($stock->id);
 

@@ -11,10 +11,15 @@ class Stock extends Model
 
     protected $fillable = [
         'name',
+        'unit',
+        'qty',
+        'buy_price',
         'active',
     ];
 
     protected $casts = [
+        'qty' => 'integer',
+        'buy_price' => 'integer',
         'active' => 'boolean',
     ];
 
