@@ -8,6 +8,7 @@ import 'auth_store.dart';
 class _StockItem {
   final int id;
   final String name;
+  final String unit;
   final int qty;
   final int buyPrice;
   final bool active;
@@ -15,6 +16,7 @@ class _StockItem {
   const _StockItem({
     required this.id,
     required this.name,
+    required this.unit,
     required this.qty,
     required this.buyPrice,
     required this.active,
@@ -32,6 +34,7 @@ class _StockItem {
     return _StockItem(
       id: (json['id'] is int) ? json['id'] as int : int.tryParse('${json['id']}') ?? 0,
       name: (json['name'] ?? '').toString(),
+      unit: (json['unit'] ?? 'pcs').toString(),
       qty: (json['qty'] is int) ? json['qty'] as int : int.tryParse('${json['qty']}') ?? 0,
       buyPrice: (json['buy_price'] is int) ? json['buy_price'] as int : int.tryParse('${json['buy_price']}') ?? 0,
       active: active,
@@ -120,12 +123,20 @@ class _StockScreenState extends State<StockScreen> {
     setState(() => _loading = false);
   }
 
-  Future<bool> _updateStock(int id, {int? qty, int? buyPrice, bool? active, String? name}) async {
+  Future<bool> _updateStock(
+    int id, {
+    int? qty,
+    int? buyPrice,
+    bool? active,
+    String? name,
+    String? unit,
+  }) async {
     final payload = <String, dynamic>{};
     if (qty != null) payload['qty'] = qty;
     if (buyPrice != null) payload['buy_price'] = buyPrice;
     if (active != null) payload['active'] = active;
     if (name != null) payload['name'] = name;
+    if (unit != null) payload['unit'] = unit;
 
     final res = await http.patch(
       Uri.parse('${AuthStore.baseUrl}/api/stocks/$id'),
@@ -144,6 +155,7 @@ class _StockScreenState extends State<StockScreen> {
 
   Future<bool> _createStock({
     required String name,
+    required String unit,
     required int qty,
     required int buyPrice,
     required bool active,
@@ -153,6 +165,7 @@ class _StockScreenState extends State<StockScreen> {
       headers: await _authHeaders(json: true),
       body: jsonEncode({
         'name': name,
+        'unit': unit,
         'qty': qty,
         'buy_price': buyPrice,
         'active': active,
@@ -184,15 +197,17 @@ class _StockScreenState extends State<StockScreen> {
   }
 
   Future<void> _openCreateDialog() async {
-    final result = await showDialog<_CreateStockResult>(
+    final result = await showDialog<_UpsertStockResult>(
       context: context,
-      builder: (_) => const _CreateStockDialog(),
+      barrierDismissible: false, // ✅ lebih aman buat user awam
+      builder: (_) => const _UpsertStockDialog(title: 'Tambah Stock'),
     );
 
     if (result == null) return;
 
     final ok = await _createStock(
       name: result.name,
+      unit: result.unit,
       qty: result.qty,
       buyPrice: result.buyPrice,
       active: result.active,
@@ -204,58 +219,87 @@ class _StockScreenState extends State<StockScreen> {
     }
   }
 
+  Future<void> _openEditDialog(_StockItem s) async {
+    final result = await showDialog<_UpsertStockResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _UpsertStockDialog(title: 'Ubah Stock', initial: s),
+    );
+
+    if (result == null) return;
+
+    final ok = await _updateStock(
+      s.id,
+      name: result.name,
+      unit: result.unit,
+      qty: result.qty,
+      buyPrice: result.buyPrice,
+      active: result.active,
+    );
+
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Stock berhasil diupdate ✅')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stok (API)'),
+        title: const Text('Stok Barang'),
         centerTitle: true,
         actions: [
           IconButton(
+            tooltip: 'Muat ulang',
             onPressed: _loading ? null : _fetchStocks,
             icon: const Icon(Icons.refresh_rounded),
           ),
-          IconButton(
-            onPressed: _openCreateDialog,
-            icon: const Icon(Icons.add_rounded),
-          ),
         ],
       ),
+
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreateDialog,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Tambah'),
+      ),
+
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
             : _stocks.isEmpty
                 ? const Center(child: Text('Belum ada stock'))
                 : ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
                     itemCount: _stocks.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (_, i) {
                       final s = _stocks[i];
-                      return _StockTile(
-                        name: s.name,
+                      return _StockFriendlyCard(
+                        item: s,
                         buyPriceText: rupiah.format(s.buyPrice),
-                        qty: s.qty,
-                        active: s.active,
-                        onSet: (qty) => _updateStock(s.id, qty: qty),
-                        onPlus: () => _updateStock(s.id, qty: s.qty + 1),
-                        onMinus: () => _updateStock(s.id, qty: (s.qty - 1) < 0 ? 0 : (s.qty - 1)),
+                        onEdit: () => _openEditDialog(s),
                         onToggleActive: (v) => _updateStock(s.id, active: v),
+                        onQtyChanged: (q) => _updateStock(s.id, qty: q),
                         onDelete: () async {
                           final yes = await showDialog<bool>(
                             context: context,
                             builder: (_) => AlertDialog(
-                              title: const Text('Hapus stock?'),
-                              content: Text('Hapus "${s.name}"?'),
+                              title: const Text('Hapus Stock'),
+                              content: Text('Yakin hapus "${s.name}"?'),
                               actions: [
                                 TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-                                FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Hapus')),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(backgroundColor: cs.error),
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Hapus'),
+                                ),
                               ],
                             ),
                           );
-                          if (yes == true) {
-                            await _deleteStock(s.id);
-                          }
+                          if (yes == true) await _deleteStock(s.id);
                         },
                       );
                     },
@@ -265,118 +309,199 @@ class _StockScreenState extends State<StockScreen> {
   }
 }
 
-class _StockTile extends StatefulWidget {
-  const _StockTile({
-    required this.name,
+/// Card versi "ramah orang tua":
+/// - tombol besar
+/// - qty pakai stepper + input
+/// - edit pakai tombol "Ubah"
+class _StockFriendlyCard extends StatefulWidget {
+  const _StockFriendlyCard({
+    required this.item,
     required this.buyPriceText,
-    required this.qty,
-    required this.active,
-    required this.onSet,
-    required this.onPlus,
-    required this.onMinus,
+    required this.onEdit,
     required this.onToggleActive,
+    required this.onQtyChanged,
     required this.onDelete,
   });
 
-  final String name;
+  final _StockItem item;
   final String buyPriceText;
-  final int qty;
-  final bool active;
-  final ValueChanged<int> onSet;
-  final VoidCallback onPlus;
-  final VoidCallback onMinus;
+  final VoidCallback onEdit;
   final ValueChanged<bool> onToggleActive;
+  final ValueChanged<int> onQtyChanged;
   final VoidCallback onDelete;
 
   @override
-  State<_StockTile> createState() => _StockTileState();
+  State<_StockFriendlyCard> createState() => _StockFriendlyCardState();
 }
 
-class _StockTileState extends State<_StockTile> {
-  late final TextEditingController ctrl;
+class _StockFriendlyCardState extends State<_StockFriendlyCard> {
+  late final TextEditingController _qtyCtrl;
 
   @override
   void initState() {
     super.initState();
-    ctrl = TextEditingController(text: widget.qty.toString());
+    _qtyCtrl = TextEditingController(text: widget.item.qty.toString());
   }
 
   @override
-  void didUpdateWidget(covariant _StockTile oldWidget) {
+  void didUpdateWidget(covariant _StockFriendlyCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.qty != widget.qty) ctrl.text = widget.qty.toString();
+    if (oldWidget.item.qty != widget.item.qty) {
+      _qtyCtrl.text = widget.item.qty.toString();
+    }
   }
 
   @override
   void dispose() {
-    ctrl.dispose();
+    _qtyCtrl.dispose();
     super.dispose();
   }
 
   int _parseQty() {
-    final raw = ctrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final raw = _qtyCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
     return int.tryParse(raw) ?? 0;
+  }
+
+  String _unitLabel(String unit) {
+    switch (unit) {
+      case 'gram':
+        return 'Gram';
+      case 'kg':
+        return 'Kilogram';
+      default:
+        return 'Pcs';
+    }
+  }
+
+  Future<void> _setQty(int value) async {
+    final v = value < 0 ? 0 : value;
+    _qtyCtrl.text = v.toString();
+    widget.onQtyChanged(v);
   }
 
   @override
   Widget build(BuildContext context) {
-    final qty = widget.qty;
-    final muted = Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7);
+    final s = widget.item;
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.color?.withOpacity(0.75);
 
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(child: Text(qty.toString())),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: Text(widget.name, style: const TextStyle(fontWeight: FontWeight.w700))),
-                      Switch(value: widget.active, onChanged: widget.onToggleActive),
-                      IconButton(onPressed: widget.onDelete, icon: const Icon(Icons.delete_outline_rounded)),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text('Harga beli: ${widget.buyPriceText}', style: TextStyle(color: muted)),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 120,
-                        child: TextField(
-                          controller: ctrl,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          decoration: InputDecoration(
-                            labelText: 'Qty',
-                            isDense: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onSubmitted: (_) => widget.onSet(_parseQty()),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(
-                        onPressed: () => widget.onSet(_parseQty()),
-                        child: const Text('Set'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Column(
+            // Header: Nama + Unit + Switch
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(onPressed: widget.onPlus, icon: const Icon(Icons.add_circle_outline_rounded)),
-                IconButton(onPressed: widget.onMinus, icon: const Icon(Icons.remove_circle_outline_rounded)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.name,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _Pill(text: 'Unit: ${_unitLabel(s.unit)}'),
+                          _Pill(text: 'Harga: ${widget.buyPriceText}'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  children: [
+                    const Text('Aktif', style: TextStyle(fontWeight: FontWeight.w700)),
+                    Switch(
+                      value: s.active,
+                      onChanged: widget.onToggleActive,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+            Text('Jumlah (Qty)', style: TextStyle(color: muted, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+
+            // Qty stepper besar
+            Row(
+              children: [
+                _BigIconButton(
+                  icon: Icons.remove,
+                  onPressed: () => _setQty(s.qty - 1),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 140,
+                  child: TextField(
+                    controller: _qtyCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onSubmitted: (_) => widget.onQtyChanged(_parseQty()),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _BigIconButton(
+                  icon: Icons.add,
+                  onPressed: () => _setQty(s.qty + 1),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => widget.onQtyChanged(_parseQty()),
+                    style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                    child: const Text('Simpan Qty', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Aksi besar: Ubah & Hapus
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: widget.onEdit,
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Ubah', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: widget.onDelete,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    label: const Text('Hapus', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
@@ -386,33 +511,103 @@ class _StockTileState extends State<_StockTile> {
   }
 }
 
-class _CreateStockResult {
+class _BigIconButton extends StatelessWidget {
+  const _BigIconButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 52,
+      height: 52,
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          padding: EdgeInsets.zero,
+        ),
+        child: Icon(icon, size: 26),
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.8);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800)),
+    );
+  }
+}
+
+class _UpsertStockResult {
   final String name;
+  final String unit;
   final int qty;
   final int buyPrice;
   final bool active;
 
-  const _CreateStockResult({
+  const _UpsertStockResult({
     required this.name,
+    required this.unit,
     required this.qty,
     required this.buyPrice,
     required this.active,
   });
 }
 
-class _CreateStockDialog extends StatefulWidget {
-  const _CreateStockDialog();
+class _UpsertStockDialog extends StatefulWidget {
+  const _UpsertStockDialog({
+    required this.title,
+    this.initial,
+  });
+
+  final String title;
+  final _StockItem? initial;
 
   @override
-  State<_CreateStockDialog> createState() => _CreateStockDialogState();
+  State<_UpsertStockDialog> createState() => _UpsertStockDialogState();
 }
 
-class _CreateStockDialogState extends State<_CreateStockDialog> {
+class _UpsertStockDialogState extends State<_UpsertStockDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController();
-  final _qty = TextEditingController(text: '0');
-  final _buy = TextEditingController(text: '0');
+
+  late final TextEditingController _name;
+  late final TextEditingController _qty;
+  late final TextEditingController _buy;
+
   bool _active = true;
+  String _unit = 'pcs';
+
+  final List<({String value, String label})> _units = const [
+    (value: 'pcs', label: 'Pcs'),
+    (value: 'gram', label: 'Gram'),
+    (value: 'kg', label: 'Kilogram'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final i = widget.initial;
+    _name = TextEditingController(text: i?.name ?? '');
+    _qty = TextEditingController(text: (i?.qty ?? 0).toString());
+    _buy = TextEditingController(text: (i?.buyPrice ?? 0).toString());
+    _active = i?.active ?? true;
+    _unit = i?.unit ?? 'pcs';
+  }
 
   int _parseInt(TextEditingController c) {
     final raw = c.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -430,54 +625,85 @@ class _CreateStockDialogState extends State<_CreateStockDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Tambah Stock'),
+      title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w900)),
       content: SizedBox(
-        width: 420,
+        width: 520,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
                   controller: _name,
-                  decoration: const InputDecoration(labelText: 'Nama stock'),
+                  decoration: InputDecoration(
+                    labelText: 'Nama Stock',
+                    hintText: 'Contoh: Tepung Terigu',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
                   validator: (v) {
                     final s = (v ?? '').trim();
-                    if (s.isEmpty) return 'Nama wajib';
+                    if (s.isEmpty) return 'Nama wajib diisi';
                     if (s.length < 2) return 'Nama terlalu pendek';
                     return null;
                   },
                 ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _qty,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(labelText: 'Qty'),
-                  validator: (_) {
-                    final q = _parseInt(_qty);
-                    if (q < 0) return 'Qty tidak boleh minus';
-                    return null;
-                  },
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  value: _unit,
+                  decoration: InputDecoration(
+                    labelText: 'Unit',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  items: _units
+                      .map((u) => DropdownMenuItem<String>(value: u.value, child: Text(u.label)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _unit = v ?? 'pcs'),
                 ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _buy,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(labelText: 'Harga beli'),
-                  validator: (_) {
-                    final p = _parseInt(_buy);
-                    if (p < 0) return 'Harga beli tidak boleh minus';
-                    return null;
-                  },
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _qty,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        decoration: InputDecoration(
+                          labelText: 'Qty',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        validator: (_) {
+                          final q = _parseInt(_qty);
+                          if (q < 0) return 'Qty tidak boleh minus';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _buy,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        decoration: InputDecoration(
+                          labelText: 'Harga Beli',
+                          hintText: 'Contoh: 12000',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        validator: (_) {
+                          final p = _parseInt(_buy);
+                          if (p < 0) return 'Harga tidak boleh minus';
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 SwitchListTile(
                   value: _active,
                   onChanged: (v) => setState(() => _active = v),
-                  title: const Text('Aktif'),
+                  title: const Text('Stock Aktif', style: TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: const Text('Kalau dimatikan, stock tidak tampil untuk dipakai.'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ],
@@ -485,22 +711,44 @@ class _CreateStockDialogState extends State<_CreateStockDialog> {
           ),
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
-        FilledButton(
-          onPressed: () {
-            if (!(_formKey.currentState?.validate() ?? false)) return;
-            Navigator.pop(
-              context,
-              _CreateStockResult(
-                name: _name.text.trim(),
-                qty: _parseInt(_qty),
-                buyPrice: _parseInt(_buy),
-                active: _active,
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('Batal', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
               ),
-            );
-          },
-          child: const Text('Simpan'),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: () {
+                  if (!(_formKey.currentState?.validate() ?? false)) return;
+                  Navigator.pop(
+                    context,
+                    _UpsertStockResult(
+                      name: _name.text.trim(),
+                      unit: _unit,
+                      qty: _parseInt(_qty),
+                      buyPrice: _parseInt(_buy),
+                      active: _active,
+                    ),
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('Simpan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ],
         ),
       ],
     );
