@@ -28,12 +28,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/categories/{category}', [PengaturantokoController::class, 'updateCategory']);
     Route::delete('/categories/{category}', [PengaturantokoController::class, 'deleteCategory']);
 
+    //UNTUK MENAMPILKAN STOCK DI PRODUCT
+    Route::get('/products/stocks-master', [ProductController::class, 'stocksMaster']);
+
     //UNTUK PRODUCT
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{product}', [ProductController::class, 'show']);
     Route::post('/products', [ProductController::class, 'store']);
     Route::patch('/products/{product}', [ProductController::class, 'update']);
     Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+    Route::get('/{product}/stocks', [ProductController::class, 'stocks']);
+    Route::post('/{product}/stocks', [ProductController::class, 'attachStock']);
+    Route::patch('/{product}/stocks/{stock}', [ProductController::class, 'updateStock']);
+    Route::delete('/{product}/stocks/{stock}', [ProductController::class, 'detachStock']);
 
     //UNTUK STOCK
     Route::get('/stocks', [StockController::class, 'index']);

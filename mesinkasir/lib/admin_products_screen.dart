@@ -17,12 +17,14 @@ class _Cat {
     final bool active = rawActive is bool
         ? rawActive
         : rawActive is int
-            ? rawActive == 1
-            : (rawActive?.toString().toLowerCase() == '1' ||
-                rawActive?.toString().toLowerCase() == 'true');
+        ? rawActive == 1
+        : (rawActive?.toString().toLowerCase() == '1' ||
+              rawActive?.toString().toLowerCase() == 'true');
 
     return _Cat(
-      id: (json['id'] is int) ? json['id'] as int : int.tryParse('${json['id']}') ?? 0,
+      id: (json['id'] is int)
+          ? json['id'] as int
+          : int.tryParse('${json['id']}') ?? 0,
       name: (json['name'] ?? '').toString(),
       active: active,
     );
@@ -53,21 +55,29 @@ class _Prod {
     final bool active = rawActive is bool
         ? rawActive
         : rawActive is int
-            ? rawActive == 1
-            : (rawActive?.toString().toLowerCase() == '1' ||
-                rawActive?.toString().toLowerCase() == 'true');
+        ? rawActive == 1
+        : (rawActive?.toString().toLowerCase() == '1' ||
+              rawActive?.toString().toLowerCase() == 'true');
 
-    final cat = (json['category'] is Map) ? Map<String, dynamic>.from(json['category'] as Map) : null;
+    final cat = (json['category'] is Map)
+        ? Map<String, dynamic>.from(json['category'] as Map)
+        : null;
 
     return _Prod(
-      id: (json['id'] is int) ? json['id'] as int : int.tryParse('${json['id']}') ?? 0,
+      id: (json['id'] is int)
+          ? json['id'] as int
+          : int.tryParse('${json['id']}') ?? 0,
       categoryId: (json['category_id'] is int)
           ? json['category_id'] as int
           : int.tryParse('${json['category_id']}') ?? 0,
       categoryName: (cat?['name'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
-      price: (json['price'] is int) ? json['price'] as int : int.tryParse('${json['price']}') ?? 0,
-      qty: (json['qty'] is int) ? json['qty'] as int : int.tryParse('${json['qty']}') ?? 0,
+      price: (json['price'] is int)
+          ? json['price'] as int
+          : int.tryParse('${json['price']}') ?? 0,
+      qty: (json['qty'] is int)
+          ? json['qty'] as int
+          : int.tryParse('${json['qty']}') ?? 0,
       active: active,
     );
   }
@@ -96,22 +106,31 @@ class _Prod {
 class _Stock {
   final int id;
   final String name;
+  final String unit;
   final bool active;
 
-  const _Stock({required this.id, required this.name, required this.active});
+  const _Stock({
+    required this.id,
+    required this.name,
+    required this.unit,
+    required this.active,
+  });
 
   factory _Stock.fromJson(Map<String, dynamic> json) {
     final rawActive = json['active'];
     final bool active = rawActive is bool
         ? rawActive
         : rawActive is int
-            ? rawActive == 1
-            : (rawActive?.toString().toLowerCase() == '1' ||
-                rawActive?.toString().toLowerCase() == 'true');
+        ? rawActive == 1
+        : (rawActive?.toString().toLowerCase() == '1' ||
+              rawActive?.toString().toLowerCase() == 'true');
 
     return _Stock(
-      id: (json['id'] is int) ? json['id'] as int : int.tryParse('${json['id']}') ?? 0,
+      id: (json['id'] is int)
+          ? json['id'] as int
+          : int.tryParse('${json['id']}') ?? 0,
       name: (json['name'] ?? '').toString(),
+      unit: (json['unit'] ?? 'pcs').toString(),
       active: active,
     );
   }
@@ -129,19 +148,23 @@ class _ProductStockLink {
   });
 
   factory _ProductStockLink.fromJson(Map<String, dynamic> json) {
-    final pivot = (json['pivot'] is Map) ? Map<String, dynamic>.from(json['pivot'] as Map) : const <String, dynamic>{};
+    final pivot = (json['pivot'] is Map)
+        ? Map<String, dynamic>.from(json['pivot'] as Map)
+        : const <String, dynamic>{};
 
     final rawActive = pivot['active'];
     final bool pActive = rawActive is bool
         ? rawActive
         : rawActive is int
-            ? rawActive == 1
-            : (rawActive?.toString().toLowerCase() == '1' ||
-                rawActive?.toString().toLowerCase() == 'true');
+        ? rawActive == 1
+        : (rawActive?.toString().toLowerCase() == '1' ||
+              rawActive?.toString().toLowerCase() == 'true');
 
     return _ProductStockLink(
       stock: _Stock.fromJson(json),
-      qty: (pivot['qty'] is int) ? pivot['qty'] as int : int.tryParse('${pivot['qty']}') ?? 0,
+      qty: (pivot['qty'] is int)
+          ? pivot['qty'] as int
+          : int.tryParse('${pivot['qty']}') ?? 0,
       active: pActive,
     );
   }
@@ -160,7 +183,11 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   final priceCtrl = TextEditingController();
   final qtyCtrl = TextEditingController(text: '0');
 
-  final _rupiah = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  final _rupiah = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
 
   int? _selectedCategoryId;
 
@@ -215,7 +242,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     final body = _tryJson(res.body);
     if (body is Map) {
       final msg = body['message'];
-      if (msg != null && msg.toString().trim().isNotEmpty) return msg.toString();
+      if (msg != null && msg.toString().trim().isNotEmpty)
+        return msg.toString();
       final errors = body['errors'];
       if (errors is Map) {
         for (final v in errors.values) {
@@ -254,7 +282,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     if (res.statusCode != 200) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
         setState(() => _loadingCats = false);
       }
       return;
@@ -266,12 +296,18 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     _categories.clear();
     if (list is List) {
       _categories.addAll(
-        list.map((e) => _Cat.fromJson(Map<String, dynamic>.from(e as Map))).where((c) => c.active).toList(),
+        list
+            .map((e) => _Cat.fromJson(Map<String, dynamic>.from(e as Map)))
+            .where((c) => c.active)
+            .toList(),
       );
-      _categories.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      _categories.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
     }
 
-    if (_selectedCategoryId != null && !_categories.any((c) => c.id == _selectedCategoryId)) {
+    if (_selectedCategoryId != null &&
+        !_categories.any((c) => c.id == _selectedCategoryId)) {
       _selectedCategoryId = null;
     }
 
@@ -288,7 +324,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     if (res.statusCode != 200) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
         setState(() => _loadingProducts = false);
       }
       return;
@@ -306,7 +344,11 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     _products.clear();
     if (items is List) {
-      _products.addAll(items.map((e) => _Prod.fromJson(Map<String, dynamic>.from(e as Map))).toList());
+      _products.addAll(
+        items
+            .map((e) => _Prod.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+      );
     }
 
     if (mounted) setState(() => _loadingProducts = false);
@@ -334,7 +376,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
 
     if (res.statusCode != 201 && res.statusCode != 200) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
       return;
     }
 
@@ -346,7 +391,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     await _fetchProducts();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Produk berhasil ditambahkan ✅')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Produk berhasil ditambahkan ✅')),
+      );
     }
   }
 
@@ -357,7 +404,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
 
     if (res.statusCode != 200) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
       return null;
     }
 
@@ -367,7 +417,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     return null;
   }
 
-  Future<bool> _updateProduct(_Prod p, {int? categoryId, String? name, int? price, int? qty, bool? active}) async {
+  Future<bool> _updateProduct(
+    _Prod p, {
+    int? categoryId,
+    String? name,
+    int? price,
+    int? qty,
+    bool? active,
+  }) async {
     final payload = <String, dynamic>{};
     if (categoryId != null) payload['category_id'] = categoryId;
     if (name != null) payload['name'] = name;
@@ -382,7 +439,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
 
     if (res.statusCode != 200) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
       return false;
     }
 
@@ -397,7 +457,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
 
     if (res.statusCode != 200) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
       return false;
     }
 
@@ -407,12 +470,15 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   Future<List<_Stock>> _fetchAllStocks() async {
     final res = await http.get(
-      Uri.parse('${AuthStore.baseUrl}/api/stocks'),
+      Uri.parse('${AuthStore.baseUrl}/api/products/stocks-master'),
       headers: await _authHeaders(),
     );
 
     if (res.statusCode != 200) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
       return [];
     }
 
@@ -467,7 +533,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: (_loadingCats || _loadingProducts) ? null : () async => await _initLoad(),
+            onPressed: (_loadingCats || _loadingProducts)
+                ? null
+                : () async => await _initLoad(),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -479,147 +547,177 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
-                delegate: SliverChildListDelegate(
-                  [
-                    _HeaderCard(
-                      title: 'Kelola Produk',
-                      subtitle: 'Tambah produk baru dan lihat daftar produk di bawah.',
-                      icon: Icons.inventory_2_rounded,
+                delegate: SliverChildListDelegate([
+                  _HeaderCard(
+                    title: 'Kelola Produk',
+                    subtitle:
+                        'Tambah produk baru dan lihat daftar produk di bawah.',
+                    icon: Icons.inventory_2_rounded,
+                  ),
+                  const SizedBox(height: 14),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(height: 14),
-                    Card(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Tambah Produk',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 12),
-                              DropdownButtonFormField<int>(
-                                value: _selectedCategoryId,
-                                items: _categories
-                                    .map((c) => DropdownMenuItem<int>(value: c.id, child: Text(c.name)))
-                                    .toList(),
-                                onChanged: _loadingCats ? null : (v) => setState(() => _selectedCategoryId = v),
-                                decoration: InputDecoration(
-                                  labelText: 'Kategori',
-                                  prefixIcon: const Icon(Icons.category_rounded),
-                                  suffixIcon: _loadingCats
-                                      ? const Padding(
-                                          padding: EdgeInsets.all(12),
-                                          child: SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Tambah Produk',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<int>(
+                              value: _selectedCategoryId,
+                              items: _categories
+                                  .map(
+                                    (c) => DropdownMenuItem<int>(
+                                      value: c.id,
+                                      child: Text(c.name),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: _loadingCats
+                                  ? null
+                                  : (v) =>
+                                        setState(() => _selectedCategoryId = v),
+                              decoration: InputDecoration(
+                                labelText: 'Kategori',
+                                prefixIcon: const Icon(Icons.category_rounded),
+                                suffixIcon: _loadingCats
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
                                           ),
-                                        )
-                                      : null,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                                validator: (v) => (v == null) ? 'Kategori wajib dipilih' : null,
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: nameCtrl,
-                                textInputAction: TextInputAction.next,
-                                decoration: InputDecoration(
-                                  labelText: 'Nama produk',
-                                  hintText: 'Contoh: Kopi Susu 250ml',
-                                  prefixIcon: const Icon(Icons.sell_rounded),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                                validator: (v) {
-                                  final s = (v ?? '').trim();
-                                  if (s.isEmpty) return 'Nama produk wajib diisi';
-                                  if (s.length < 3) return 'Nama terlalu pendek';
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: priceCtrl,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  _ThousandSeparatorInputFormatter(),
-                                ],
-                                decoration: InputDecoration(
-                                  labelText: 'Harga',
-                                  hintText: 'Contoh: 15000',
-                                  prefixIcon: const Icon(Icons.payments_rounded),
-                                  prefixText: 'Rp ',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                                  helperText: 'Masukkan angka tanpa titik/koma (akan diformat otomatis).',
-                                ),
-                                validator: (_) {
-                                  final p = _parsePrice();
-                                  if (p == null) return 'Harga wajib diisi';
-                                  if (p <= 0) return 'Harga harus lebih dari 0';
-                                  if (p > 1000000000) return 'Harga terlalu besar';
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: qtyCtrl,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                decoration: InputDecoration(
-                                  labelText: 'Qty (produk)',
-                                  hintText: 'Contoh: 10',
-                                  prefixIcon: const Icon(Icons.inventory_rounded),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                                validator: (_) {
-                                  final q = _parseQty();
-                                  if (q == null) return 'Qty wajib diisi';
-                                  if (q < 0) return 'Qty tidak boleh minus';
-                                  if (q > 1000000000) return 'Qty terlalu besar';
-                                  return null;
-                                },
-                                onFieldSubmitted: (_) => addProduct(),
-                              ),
-                              const SizedBox(height: 14),
-                              SizedBox(
-                                height: 48,
-                                child: FilledButton.icon(
-                                  onPressed: addProduct,
-                                  icon: const Icon(Icons.add_rounded),
-                                  label: const Text('Tambah Produk'),
+                                        ),
+                                      )
+                                    : null,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
-                            ],
-                          ),
+                              validator: (v) =>
+                                  (v == null) ? 'Kategori wajib dipilih' : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: nameCtrl,
+                              textInputAction: TextInputAction.next,
+                              decoration: InputDecoration(
+                                labelText: 'Nama produk',
+                                hintText: 'Contoh: Kopi Susu 250ml',
+                                prefixIcon: const Icon(Icons.sell_rounded),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              validator: (v) {
+                                final s = (v ?? '').trim();
+                                if (s.isEmpty) return 'Nama produk wajib diisi';
+                                if (s.length < 3) return 'Nama terlalu pendek';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: priceCtrl,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                _ThousandSeparatorInputFormatter(),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'Harga',
+                                hintText: 'Contoh: 15000',
+                                prefixIcon: const Icon(Icons.payments_rounded),
+                                prefixText: 'Rp ',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                helperText:
+                                    'Masukkan angka tanpa titik/koma (akan diformat otomatis).',
+                              ),
+                              validator: (_) {
+                                final p = _parsePrice();
+                                if (p == null) return 'Harga wajib diisi';
+                                if (p <= 0) return 'Harga harus lebih dari 0';
+                                if (p > 1000000000)
+                                  return 'Harga terlalu besar';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: qtyCtrl,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              decoration: InputDecoration(
+                                labelText: 'Qty (produk)',
+                                hintText: 'Contoh: 10',
+                                prefixIcon: const Icon(Icons.inventory_rounded),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              validator: (_) {
+                                final q = _parseQty();
+                                if (q == null) return 'Qty wajib diisi';
+                                if (q < 0) return 'Qty tidak boleh minus';
+                                if (q > 1000000000) return 'Qty terlalu besar';
+                                return null;
+                              },
+                              onFieldSubmitted: (_) => addProduct(),
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              height: 48,
+                              child: FilledButton.icon(
+                                onPressed: addProduct,
+                                icon: const Icon(Icons.add_rounded),
+                                label: const Text('Tambah Produk'),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Text(
-                          'Daftar Produk',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Text(
+                        'Daftar Produk',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const Spacer(),
+                      if (_loadingProducts)
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        Chip(
+                          label: Text('${products.length} item'),
+                          avatar: const Icon(Icons.list_rounded, size: 18),
                         ),
-                        const Spacer(),
-                        if (_loadingProducts)
-                          const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        else
-                          Chip(
-                            label: Text('${products.length} item'),
-                            avatar: const Icon(Icons.list_rounded, size: 18),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ]),
               ),
             ),
             if (!_loadingProducts && products.isEmpty)
@@ -629,7 +727,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _EmptyState(
                     title: 'Belum ada produk',
-                    subtitle: 'Tambahkan produk pertama kamu dari form di atas.',
+                    subtitle:
+                        'Tambahkan produk pertama kamu dari form di atas.',
                     icon: Icons.inbox_rounded,
                   ),
                 ),
@@ -640,7 +739,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 sliver: SliverToBoxAdapter(
                   child: Card(
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: products.length,
@@ -649,13 +750,22 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (_, i) {
                         final p = products[i];
-                        final catLabel = p.categoryName.isNotEmpty ? p.categoryName : _catNameById(p.categoryId);
-                        final catText = catLabel.isNotEmpty ? catLabel : 'Kategori #${p.categoryId}';
+                        final catLabel = p.categoryName.isNotEmpty
+                            ? p.categoryName
+                            : _catNameById(p.categoryId);
+                        final catText = catLabel.isNotEmpty
+                            ? catLabel
+                            : 'Kategori #${p.categoryId}';
                         return ListTile(
                           onTap: () => _openProductDetail(p),
                           leading: CircleAvatar(child: Text('${i + 1}')),
-                          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text('${_rupiah.format(p.price)} • $catText • Qty ${p.qty}'),
+                          title: Text(
+                            p.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            '${_rupiah.format(p.price)} • $catText • Qty ${p.qty}',
+                          ),
                           trailing: const Icon(Icons.chevron_right_rounded),
                         );
                       },
@@ -716,7 +826,8 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
     final body = _tryJson(res.body);
     if (body is Map) {
       final msg = body['message'];
-      if (msg != null && msg.toString().trim().isNotEmpty) return msg.toString();
+      if (msg != null && msg.toString().trim().isNotEmpty)
+        return msg.toString();
       final errors = body['errors'];
       if (errors is Map) {
         for (final v in errors.values) {
@@ -748,7 +859,9 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
 
     if (res.statusCode != 200) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
         setState(() => _loadingLinks = false);
       }
       return;
@@ -759,7 +872,15 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
 
     _links.clear();
     if (list is List) {
-      _links.addAll(list.map((e) => _ProductStockLink.fromJson(Map<String, dynamic>.from(e as Map))).toList());
+      _links.addAll(
+        list
+            .map(
+              (e) => _ProductStockLink.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
+            .toList(),
+      );
     }
 
     if (mounted) setState(() => _loadingLinks = false);
@@ -773,11 +894,12 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
     );
 
     if (res.statusCode != 200 && res.statusCode != 201) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
       return false;
     }
-
-    await _fetchProductStocks();
     return true;
   }
 
@@ -789,11 +911,12 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
     );
 
     if (res.statusCode != 200) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
       return false;
     }
-
-    await _fetchProductStocks();
     return true;
   }
 
@@ -804,18 +927,60 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
     );
 
     if (res.statusCode != 200) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(res))));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errMsg(res))));
       return false;
+    }
+    return true;
+  }
+
+  Future<void> _openConfigureStocks() async {
+    final all = await widget.loadAllStocks();
+    if (!mounted) return;
+
+    final result = await showDialog<_ConfigureStocksResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) =>
+          _ConfigureProductStocksDialog(allStocks: all, attachedLinks: _links),
+    );
+
+    if (result == null) return;
+
+    final selectedIds = result.selectedQty.keys.toSet();
+    final currentlyAttachedIds = _links.map((e) => e.stock.id).toSet();
+
+    for (final id in selectedIds) {
+      final newQty = result.selectedQty[id] ?? 0;
+      final existing = _links.where((e) => e.stock.id == id).toList();
+      if (existing.isEmpty) {
+        await _attachStock(id, newQty);
+      } else {
+        final oldQty = existing.first.qty;
+        if (oldQty != newQty) {
+          await _updateStockQty(id, newQty);
+        }
+      }
+    }
+
+    for (final id in currentlyAttachedIds.difference(selectedIds)) {
+      await _detachStock(id);
     }
 
     await _fetchProductStocks();
-    return true;
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Stock produk tersimpan ✅')));
   }
 
   Future<void> _editProduct() async {
     final result = await showDialog<_Prod>(
       context: context,
-      builder: (_) => _EditProductDialog(product: _p, categories: widget.categories),
+      builder: (_) =>
+          _EditProductDialog(product: _p, categories: widget.categories),
     );
 
     if (result == null) return;
@@ -833,7 +998,9 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
 
     if (!mounted) return;
     setState(() => _p = result);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Produk berhasil diupdate ✅')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Produk berhasil diupdate ✅')));
   }
 
   Future<void> _deleteProduct() async {
@@ -843,8 +1010,14 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
         title: const Text('Hapus produk?'),
         content: Text('Hapus "${_p.name}" dari daftar?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Hapus')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
+          ),
         ],
       ),
     );
@@ -856,7 +1029,13 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
 
     if (!mounted) return;
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Produk berhasil dihapus ✅')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Produk berhasil dihapus ✅')));
+  }
+
+  String _unitText(_Stock s) {
+    return s.unit;
   }
 
   @override
@@ -864,16 +1043,22 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
     final cat = _p.categoryName.isNotEmpty
         ? _p.categoryName
         : (widget.categories.where((e) => e.id == _p.categoryId).isNotEmpty
-            ? widget.categories.firstWhere((e) => e.id == _p.categoryId).name
-            : 'Kategori #${_p.categoryId}');
+              ? widget.categories.firstWhere((e) => e.id == _p.categoryId).name
+              : 'Kategori #${_p.categoryId}');
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Produk'),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: _editProduct, icon: const Icon(Icons.edit_rounded)),
-          IconButton(onPressed: _deleteProduct, icon: const Icon(Icons.delete_rounded)),
+          IconButton(
+            onPressed: _editProduct,
+            icon: const Icon(Icons.edit_rounded),
+          ),
+          IconButton(
+            onPressed: _deleteProduct,
+            icon: const Icon(Icons.delete_rounded),
+          ),
         ],
       ),
       body: SafeArea(
@@ -882,7 +1067,9 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
           children: [
             Card(
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -890,13 +1077,21 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
                   children: [
                     Text(
                       _p.name,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     _InfoRow(label: 'Kategori', value: cat),
-                    _InfoRow(label: 'Harga', value: widget.rupiah.format(_p.price)),
+                    _InfoRow(
+                      label: 'Harga',
+                      value: widget.rupiah.format(_p.price),
+                    ),
                     _InfoRow(label: 'Qty (produk)', value: '${_p.qty}'),
-                    _InfoRow(label: 'Status', value: _p.active ? 'Aktif' : 'Nonaktif'),
+                    _InfoRow(
+                      label: 'Status',
+                      value: _p.active ? 'Aktif' : 'Nonaktif',
+                    ),
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 46,
@@ -914,7 +1109,9 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
             const SizedBox(height: 12),
             Card(
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -923,29 +1120,17 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
                     Row(
                       children: [
                         Text(
-                          'Stocks',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                          'Stock untuk Produk Ini',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const Spacer(),
-                        IconButton(
+                        TextButton.icon(
                           onPressed: _loadingLinks
                               ? null
-                              : () async {
-                                  final all = await widget.loadAllStocks();
-                                  if (!mounted) return;
-                                  final picked = await showDialog<_PickStockResult>(
-                                    context: context,
-                                    builder: (_) => _PickStockDialog(stocks: all),
-                                  );
-                                  if (picked == null) return;
-                                  final ok = await _attachStock(picked.stockId, picked.qty);
-                                  if (ok && mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Stock ditambahkan ✅')),
-                                    );
-                                  }
-                                },
-                          icon: const Icon(Icons.add_rounded),
+                              : _openConfigureStocks,
+                          icon: const Icon(Icons.tune_rounded),
+                          label: const Text('Atur Stock'),
                         ),
                       ],
                     ),
@@ -960,7 +1145,9 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
                     else if (_links.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text('Belum ada stock yang dipakai produk ini.'),
+                        child: Text(
+                          'Belum ada stock yang dipakai produk ini. Tekan "Atur Stock".',
+                        ),
                       )
                     else
                       ListView.separated(
@@ -971,40 +1158,17 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
                         itemBuilder: (_, i) {
                           final l = _links[i];
                           return ListTile(
-                            title: Text(l.stock.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                            subtitle: Text('Qty: ${l.qty}'),
-                            trailing: Wrap(
-                              spacing: 6,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit_rounded),
-                                  onPressed: () async {
-                                    final newQty = await showDialog<int>(
-                                      context: context,
-                                      builder: (_) => _EditQtyDialog(initial: l.qty),
-                                    );
-                                    if (newQty == null) return;
-                                    final ok = await _updateStockQty(l.stock.id, newQty);
-                                    if (ok && mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Qty stock diupdate ✅')),
-                                      );
-                                    }
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.close_rounded),
-                                  onPressed: () async {
-                                    final ok = await _detachStock(l.stock.id);
-                                    if (ok && mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Stock dilepas ✅')),
-                                      );
-                                    }
-                                  },
-                                ),
-                              ],
+                            title: Text(
+                              l.stock.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
+                            subtitle: Text(
+                              'Butuh: ${l.qty} ${_unitText(l.stock)}',
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: _openConfigureStocks,
                           );
                         },
                       ),
@@ -1014,7 +1178,7 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
                       child: OutlinedButton.icon(
                         onPressed: _fetchProductStocks,
                         icon: const Icon(Icons.refresh_rounded),
-                        label: const Text('Refresh Stocks'),
+                        label: const Text('Refresh'),
                       ),
                     ),
                   ],
@@ -1028,136 +1192,210 @@ class _ProductDetailScreenState extends State<_ProductDetailScreen> {
   }
 }
 
-class _PickStockResult {
-  final int stockId;
-  final int qty;
-  const _PickStockResult(this.stockId, this.qty);
+class _ConfigureStocksResult {
+  final Map<int, int> selectedQty; // stockId -> qtyNeeded
+  const _ConfigureStocksResult(this.selectedQty);
 }
 
-class _PickStockDialog extends StatefulWidget {
-  const _PickStockDialog({required this.stocks});
-  final List<_Stock> stocks;
+class _ConfigureProductStocksDialog extends StatefulWidget {
+  const _ConfigureProductStocksDialog({
+    required this.allStocks,
+    required this.attachedLinks,
+  });
+
+  final List<_Stock> allStocks;
+  final List<_ProductStockLink> attachedLinks;
 
   @override
-  State<_PickStockDialog> createState() => _PickStockDialogState();
+  State<_ConfigureProductStocksDialog> createState() =>
+      _ConfigureProductStocksDialogState();
 }
 
-class _PickStockDialogState extends State<_PickStockDialog> {
-  int? _stockId;
-  final _qtyCtrl = TextEditingController(text: '0');
-  final _formKey = GlobalKey<FormState>();
+class _ConfigureProductStocksDialogState
+    extends State<_ConfigureProductStocksDialog> {
+  final _search = TextEditingController();
+  final Map<int, bool> _checked = {};
+  final Map<int, TextEditingController> _qtyCtrls = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final attachedMap = {
+      for (final l in widget.attachedLinks) l.stock.id: l.qty,
+    };
+
+    for (final s in widget.allStocks) {
+      final isOn = attachedMap.containsKey(s.id);
+      _checked[s.id] = isOn;
+      _qtyCtrls[s.id] = TextEditingController(
+        text: (attachedMap[s.id] ?? 1).toString(),
+      );
+    }
+  }
 
   @override
   void dispose() {
-    _qtyCtrl.dispose();
+    _search.dispose();
+    for (final c in _qtyCtrls.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  int? _parseQty() {
-    final raw = _qtyCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
-    return int.tryParse(raw);
+  int _parseQty(TextEditingController c) {
+    final raw = c.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final v = int.tryParse(raw) ?? 0;
+    return v < 0 ? 0 : v;
+  }
+
+  String _unitText(_Stock s) {
+    return s.unit;
   }
 
   @override
   Widget build(BuildContext context) {
+    final q = _search.text.trim().toLowerCase();
+    final list =
+        widget.allStocks
+            .where((s) => s.active)
+            .where((s) => q.isEmpty ? true : s.name.toLowerCase().contains(q))
+            .toList()
+          ..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
+
     return AlertDialog(
-      title: const Text('Tambah Stock'),
+      title: const Text('Pilih Stock & Kebutuhan'),
       content: SizedBox(
-        width: 420,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<int>(
-                value: _stockId,
-                items: widget.stocks.map((s) => DropdownMenuItem<int>(value: s.id, child: Text(s.name))).toList(),
-                onChanged: (v) => setState(() => _stockId = v),
-                decoration: const InputDecoration(labelText: 'Stock'),
-                validator: (v) => v == null ? 'Pilih stock' : null,
+        width: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _search,
+              decoration: InputDecoration(
+                labelText: 'Cari stock',
+                prefixIcon: const Icon(Icons.search_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _qtyCtrl,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'Qty'),
-                validator: (_) {
-                  final q = _parseQty();
-                  if (q == null) return 'Qty wajib';
-                  if (q < 0) return 'Qty tidak boleh minus';
-                  return null;
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: list.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (_, i) {
+                  final s = list[i];
+                  final checked = _checked[s.id] ?? false;
+                  final ctrl = _qtyCtrls[s.id]!;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: checked,
+                          onChanged: (v) =>
+                              setState(() => _checked[s.id] = v ?? false),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Unit: ${_unitText(s)}',
+                                style: TextStyle(
+                                  color: Theme.of(context).hintColor,
+                                ),
+                              ),
+                              if (checked) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: ctrl,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
+                                        ],
+                                        decoration: InputDecoration(
+                                          labelText: 'Kebutuhan per 1 produk',
+                                          hintText: 'Contoh: 1',
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    SizedBox(
+                                      height: 48,
+                                      width: 48,
+                                      child: FilledButton(
+                                        onPressed: () {
+                                          final v = _parseQty(ctrl);
+                                          ctrl.text = (v <= 0 ? 1 : v)
+                                              .toString();
+                                        },
+                                        style: FilledButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                        child: const Icon(Icons.check_rounded),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 },
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Centang stock yang dipakai, lalu isi “kebutuhan per 1 produk”.',
+              style: TextStyle(color: Theme.of(context).hintColor),
+            ),
+          ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
         FilledButton(
           onPressed: () {
-            if (!(_formKey.currentState?.validate() ?? false)) return;
-            Navigator.pop(context, _PickStockResult(_stockId!, _parseQty() ?? 0));
-          },
-          child: const Text('Tambah'),
-        ),
-      ],
-    );
-  }
-}
-
-class _EditQtyDialog extends StatefulWidget {
-  const _EditQtyDialog({required this.initial});
-  final int initial;
-
-  @override
-  State<_EditQtyDialog> createState() => _EditQtyDialogState();
-}
-
-class _EditQtyDialogState extends State<_EditQtyDialog> {
-  late final TextEditingController _ctrl = TextEditingController(text: widget.initial.toString());
-  final _formKey = GlobalKey<FormState>();
-
-  int? _parseQty() {
-    final raw = _ctrl.text.replaceAll(RegExp(r'[^0-9]'), '');
-    return int.tryParse(raw);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Edit Qty'),
-      content: SizedBox(
-        width: 320,
-        child: Form(
-          key: _formKey,
-          child: TextFormField(
-            controller: _ctrl,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(labelText: 'Qty'),
-            validator: (_) {
-              final q = _parseQty();
-              if (q == null) return 'Qty wajib';
-              if (q < 0) return 'Qty tidak boleh minus';
-              return null;
-            },
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
-        FilledButton(
-          onPressed: () {
-            if (!(_formKey.currentState?.validate() ?? false)) return;
-            Navigator.pop(context, _parseQty() ?? 0);
+            final Map<int, int> out = {};
+            _checked.forEach((id, on) {
+              if (on) {
+                final ctrl = _qtyCtrls[id]!;
+                var qty = _parseQty(ctrl);
+                if (qty <= 0) qty = 1;
+                out[id] = qty;
+              }
+            });
+            Navigator.pop(context, _ConfigureStocksResult(out));
           },
           child: const Text('Simpan'),
         ),
@@ -1221,8 +1459,16 @@ class _EditProductDialogState extends State<_EditProductDialog> {
               children: [
                 DropdownButtonFormField<int>(
                   value: _categoryId,
-                  items: widget.categories.map((c) => DropdownMenuItem<int>(value: c.id, child: Text(c.name))).toList(),
-                  onChanged: (v) => setState(() => _categoryId = v ?? _categoryId),
+                  items: widget.categories
+                      .map(
+                        (c) => DropdownMenuItem<int>(
+                          value: c.id,
+                          child: Text(c.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) =>
+                      setState(() => _categoryId = v ?? _categoryId),
                   decoration: const InputDecoration(labelText: 'Kategori'),
                   validator: (v) => (v == null) ? 'Kategori wajib' : null,
                 ),
@@ -1276,7 +1522,10 @@ class _EditProductDialogState extends State<_EditProductDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
         FilledButton(
           onPressed: () {
             if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -1309,14 +1558,24 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.65);
+    final muted = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.color?.withOpacity(0.65);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          SizedBox(width: 110, child: Text(label, style: TextStyle(color: muted))),
+          SizedBox(
+            width: 110,
+            child: Text(label, style: TextStyle(color: muted)),
+          ),
           const SizedBox(width: 10),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
         ],
       ),
     );
@@ -1324,7 +1583,11 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _HeaderCard extends StatelessWidget {
-  const _HeaderCard({required this.title, required this.subtitle, required this.icon});
+  const _HeaderCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
 
   final String title;
   final String subtitle;
@@ -1363,7 +1626,9 @@ class _HeaderCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
@@ -1377,7 +1642,11 @@ class _HeaderCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.title, required this.subtitle, required this.icon});
+  const _EmptyState({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
 
   final String title;
   final String subtitle;
@@ -1385,7 +1654,9 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7);
+    final muted = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.color?.withOpacity(0.7);
 
     return Container(
       alignment: Alignment.center,
@@ -1397,13 +1668,17 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: muted),
           ),
         ],
       ),
@@ -1413,12 +1688,18 @@ class _EmptyState extends StatelessWidget {
 
 class _ThousandSeparatorInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.isEmpty) return const TextEditingValue(text: '');
 
     final number = int.parse(digits);
-    final formatted = NumberFormat('#,###', 'id_ID').format(number).replaceAll(',', '.');
+    final formatted = NumberFormat(
+      '#,###',
+      'id_ID',
+    ).format(number).replaceAll(',', '.');
 
     return TextEditingValue(
       text: formatted,
