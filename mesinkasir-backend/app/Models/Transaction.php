@@ -13,8 +13,10 @@ class Transaction extends Model
     protected $table = 'transactions';
 
     protected $fillable = [
+        'group_id',
         'cashier_id',
         'items',
+        'pay_method',
         'total_amount',
         'paid_amount',
         'change_amount',
@@ -23,6 +25,7 @@ class Transaction extends Model
 
     protected $casts = [
         'items' => 'array',
+        'pay_method' => 'integer',
         'paid_at' => 'datetime',
         'total_amount' => 'integer',
         'paid_amount' => 'integer',

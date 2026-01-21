@@ -13,8 +13,10 @@ class TransactionHistory extends Model
     protected $table = 'transaction_histories';
 
     protected $fillable = [
+        'group_id',
         'cashier_id',
         'items',
+        'pay_method',
         'total_amount',
         'paid_amount',
         'change_amount',
@@ -25,6 +27,7 @@ class TransactionHistory extends Model
     protected $casts = [
         'items' => 'array',
         'paid_at' => 'datetime',
+        'pay_method' => 'integer',
         'total_amount' => 'integer',
         'paid_amount' => 'integer',
         'change_amount' => 'integer',
@@ -41,4 +44,3 @@ class TransactionHistory extends Model
         return $this->belongsTo(Transaction::class, 'source_transaction_id');
     }
 }
-
