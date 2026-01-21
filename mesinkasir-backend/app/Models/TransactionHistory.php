@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+use Illuminate\Support\Str;
+
 class TransactionHistory extends Model
 {
     use HasFactory;
@@ -42,5 +44,14 @@ class TransactionHistory extends Model
     public function sourceTransaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class, 'source_transaction_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            if (empty($model->group_id)) {
+                $model->group_id = (string) Str::ulid();
+            }
+        });
     }
 }
