@@ -102,8 +102,6 @@ class _PengaturTokoScreenState extends State<PengaturTokoScreen> {
 
       final decoded = _tryJson(res.body);
 
-      // Terima format:
-      // {data:{...}} (sesuai controller) atau {...}
       final data = (decoded is Map && decoded['data'] is Map)
           ? Map<String, dynamic>.from(decoded['data'])
           : (decoded is Map)
